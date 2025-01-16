@@ -1,5 +1,66 @@
 use std::io::{self, BufWriter, Read, Write};
 
+// consumes more memory as we creating pending array always
+fn backtrack_copy_pending(
+    pending: Vec<char>,
+    result: &mut Vec<Vec<char>>,
+    cur: &mut Vec<char>,
+    ans_size: usize,
+) {
+    if cur.len() == ans_size {
+        result.push(cur.clone());
+        return;
+    }
+
+    for (idx, &char) in pending.iter().enumerate() {
+        if idx != 0 && char == pending[idx - 1] {
+            // if same as prev, skip it
+            continue;
+        }
+
+        let new_pending: Vec<char> = pending
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &ch)| if i != idx { Some(ch) } else { None })
+            .collect();
+
+        cur.push(char);
+        backtrack_copy_pending(new_pending, result, cur, ans_size);
+        cur.pop();
+    }
+}
+
+// this would give us the permutations without creating new pending vector every time
+// but they won't be in sorted order. So can't be used this to submit for solution.
+// Though nice trick to use start idx and swap logic to find permutations.
+fn backtrack_non_sorted_permutations(
+    start: usize,
+    pending: &mut Vec<char>,
+    result: &mut Vec<Vec<char>>,
+    cur: &mut Vec<char>,
+    ans_size: usize,
+) {
+    if cur.len() == ans_size {
+        result.push(cur.clone());
+        return;
+    }
+
+    for idx in start..pending.len() {
+        if idx > start && pending[idx] == pending[start] {
+            // if same as start, skip it
+            continue;
+        }
+
+        // swap this idx with start. so that all the pending chars go after swap
+        pending.swap(start, idx);
+        cur.push(pending[start]);
+
+        backtrack(start + 1, pending, result, cur, ans_size);
+        cur.pop();
+        pending.swap(start, idx);
+    }
+}
+
 fn backtrack(
     pending: &Vec<char>,
     used: &mut Vec<bool>,
