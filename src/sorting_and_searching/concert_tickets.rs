@@ -5,7 +5,7 @@ use std::{
 
 // The logic is to store the tickets in BTreeMap, which will keep them in sorted
 // order based on there price, and we will keep there count as value.
-// Next go over all the customer prices and get the 1 prev than lower bound from BTree for that value
+// Next go over all the customer prices and get lower_bound if match else, 1 prev than lower bound. from BTree for that value
 // and also decrement/remove the ticket after use.
 // Retreival of upper_bound and removal is O(lgN) in BTree.
 // So total TC: O(NlgN + MlgN)
@@ -40,16 +40,16 @@ fn main() {
         .split_ascii_whitespace()
         .filter_map(|it| it.parse::<u32>().ok())
     {
-        // get 1 less than lower bound from Sorted BTree if present.
+        // get lower_bound if match else, 1 prev than lower bound.
         let elem = tickets.range(..=price).last().map(|(&k, &v)| (k, v));
 
-        if let Some(upper_bound) = elem {
-            writeln!(out, "{}", upper_bound.0).expect("error writing line");
+        if let Some(el) = elem {
+            writeln!(out, "{}", el.0).expect("error writing line");
 
-            if let Some(value) = tickets.get_mut(&upper_bound.0) {
+            if let Some(value) = tickets.get_mut(&el.0) {
                 *value -= 1; // Decrement the value
                 if *value == 0 {
-                    tickets.remove(&upper_bound.0); // Remove the key if the value is 0
+                    tickets.remove(&el.0); // Remove the key if the value is 0
                 }
             }
         } else {
