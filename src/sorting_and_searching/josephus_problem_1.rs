@@ -1,5 +1,6 @@
 use std::io::{self, BufWriter, Read, Write};
 
+// TC: O(N lgN). Log base: 2
 fn main() {
     let mut input = String::new();
     io::stdin()
