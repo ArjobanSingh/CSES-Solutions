@@ -29,14 +29,19 @@ impl PartialOrd for State {
     }
 }
 
-/// The approach starts by sorting the guests based on their arrival time, departure time, and index (to handle ties).
-// A Min-Heap (Priority Queue) is used to track the guests in order of their departure time, then arrival time, and index.
-// As we iterate through each guest, we check if there is any guest whose departure time is before the current guest's arrival.
-// If such a guest exists, we assign that guest's room to the current guest. Otherwise, we allocate a new room (based on the current queue size + 1).
-// At the end, the number of rooms needed is equal to the size of the priority queue, which holds the current state of the room allocations.
-// Additionally, we maintain the room assignments in the result array.
-// Note: The exact room assignment may vary, as any available room can be assigned to a guest when multiple rooms are free at the same time.
-// The only requirement is to provide any valid room allocation order.
+/// Approach:
+/// 1. Sort the guests by arrival time, and in case of ties, by departure time and index.
+/// 2. Use a min-heap (priority queue) to manage rooms based on:
+///    - Departure time (priority for freeing up the room),
+///    - Room number (to reuse the smallest available room),
+///    - Guest index (to break ties consistently).
+/// 3. For each guest:
+///    - If the earliest-leaving guest's room is available (departure < arrival), reassign that room.
+///    - Otherwise, allocate a new room based on the heap size.
+/// 4. The total number of rooms needed is the size of the heap at the end.
+/// 5. Maintain the room assignments in a result array and print it in the order of guest indices.
+///
+/// Note: The exact room assignments may vary since any valid allocation order is acceptable.
 fn main() {
     let mut input = String::new();
     io::stdin()
