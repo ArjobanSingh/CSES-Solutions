@@ -42,7 +42,7 @@ impl SegmentTree {
         self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1];
     }
 
-    fn query(&mut self, node: usize, l: usize, r: usize, index: usize) -> usize {
+    fn query_and_update(&mut self, node: usize, l: usize, r: usize, index: usize) -> usize {
         if l == r {
             self.tree[node] = 0;
             return l;
@@ -52,17 +52,16 @@ impl SegmentTree {
         let l_child = node * 2;
         let r_child = node * 2 + 1;
 
-        // we are using 0 based indexing. so only go to left tree, if index is smaller than
+        // we are using 0 based indexing for querying, so only go to left tree, if index is smaller than
         // no. of live children in left tree. Else for equal or more go to right tree.
-        if self.tree[l_child] > index {
-            let ans = self.query(l_child, l, mid, index);
-            self.tree[node] = self.tree[l_child] + self.tree[r_child];
-            ans
+        let ans = if self.tree[l_child] > index {
+            self.query_and_update(l_child, l, mid, index)
         } else {
-            let ans = self.query(r_child, mid + 1, r, index - self.tree[l_child]);
-            self.tree[node] = self.tree[l_child] + self.tree[r_child];
-            ans
-        }
+            self.query_and_update(r_child, mid + 1, r, index - self.tree[l_child])
+        };
+
+        self.tree[node] = self.tree[l_child] + self.tree[r_child];
+        ans
     }
 
     fn live_count(&mut self) -> usize {
@@ -97,7 +96,7 @@ fn main() {
     while tree.live_count() != 0 {
         idx += k;
         idx %= tree.live_count();
-        let ans = tree.query(1, 1, n, idx);
+        let ans = tree.query_and_update(1, 1, n, idx);
         write!(out, "{ans} ").expect("error writing num");
     }
 
