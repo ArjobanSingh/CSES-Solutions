@@ -25,7 +25,7 @@ struct SegmentTree {
 impl SegmentTree {
     fn new(n: usize) -> Self {
         Self {
-            tree: vec![0; n * 4 + 1],
+            tree: vec![0; n * 4],
         }
     }
 
@@ -37,9 +37,12 @@ impl SegmentTree {
         }
 
         let mid = l + (r - l) / 2;
-        self.build(node * 2, l, mid);
-        self.build(node * 2 + 1, mid + 1, r);
-        self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1];
+        let l_child = node * 2 + 1;
+        let r_child = node * 2 + 2;
+
+        self.build(l_child, l, mid);
+        self.build(r_child, mid + 1, r);
+        self.tree[node] = self.tree[l_child] + self.tree[r_child];
     }
 
     fn query_and_update(&mut self, node: usize, l: usize, r: usize, index: usize) -> usize {
@@ -49,8 +52,8 @@ impl SegmentTree {
         }
 
         let mid = l + (r - l) / 2;
-        let l_child = node * 2;
-        let r_child = node * 2 + 1;
+        let l_child = node * 2 + 1;
+        let r_child = node * 2 + 2;
 
         // we are using 0 based indexing for querying, so only go to left tree, if index is smaller than
         // no. of live children in left tree. Else for equal or more go to right tree.
@@ -65,7 +68,7 @@ impl SegmentTree {
     }
 
     fn live_count(&mut self) -> usize {
-        self.tree[1] as usize
+        self.tree[0] as usize
     }
 }
 
@@ -91,13 +94,13 @@ fn main() {
     let mut idx = 0;
 
     let mut tree = SegmentTree::new(n);
-    tree.build(1, 1, n);
+    tree.build(0, 1, n);
 
     while tree.live_count() != 0 {
         idx += k;
         idx %= tree.live_count();
-        let ans = tree.query_and_update(1, 1, n, idx);
-        write!(out, "{ans} ").expect("error writing num");
+        let ans = tree.query_and_update(0, 1, n, idx);
+        write!(out, "{} ", ans).expect("error writing num");
     }
 
     writeln!(out, "").expect("error writing line");
