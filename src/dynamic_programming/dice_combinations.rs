@@ -17,6 +17,41 @@ fn main() {
         .next()
         .expect("Error reading n")
         .parse()
+        .expect("error parsing n");
+
+    let mut dp = vec![0; n + 1];
+    dp[0] = 1;
+
+    for i in 1..n + 1 {
+        for j in 1..=6 {
+            if j <= i {
+                dp[i] = (dp[i] + dp[i - j]) % MOD;
+            }
+        }
+    }
+
+    writeln!(out, "{}", dp[n]).expect("error writing line");
+
+    out.flush().ok();
+}
+
+// Instead of doing 6N, it does in N, where we do not iterate over all the 6 sides of dice
+// for each dice, rather maintain a running sum of last 6 numbers ways.
+// And just remove the ans of i - (6 + 1)th sum, in each iteration.
+fn main_bit_smart() {
+    let mut input = String::new();
+    io::stdin()
+        .lock()
+        .read_to_string(&mut input)
+        .expect("Error reading line");
+
+    let mut lines = input.lines();
+
+    let mut out = BufWriter::new(io::stdout().lock());
+    let n: usize = lines
+        .next()
+        .expect("Error reading n")
+        .parse()
         .expect("Error parsing n");
 
     let mut cur_sum = 1;
