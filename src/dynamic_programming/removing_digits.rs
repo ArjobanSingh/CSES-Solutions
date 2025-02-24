@@ -33,7 +33,7 @@ fn main() {
         // We need 1 more step than the steps needed to reach (i - digit).
         // For each digit, find the (i - digit) with the smallest steps.
         // Use that value and add 1 to it to get the steps for the current number.
-        // Base case is nums 1-9 which takes only 1 step.
+        // Base case is sum 1-9 which takes only 1 step.
         let mut num = i;
         while num != 0 {
             let digit = num % 10;
