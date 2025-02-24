@@ -1,13 +1,65 @@
 use std::{
+    cmp,
+    collections::HashMap,
     io::{self, BufWriter, Read, Write},
     usize,
 };
 
-const MOD: i32 = 1_000_000_007;
-const TRAP: char = '*';
+// const MOD: i32 = 1_000_000_007;
 
-fn get_idx(r: usize, c: usize, cols: usize) -> usize {
-    r * cols + c
+fn backtrack(
+    start_idx: usize,
+    books: &Vec<usize>,
+    max_money: usize,
+    mut cur_result: usize,
+    result: &mut usize,
+    prices_map: &mut HashMap<usize, Collection>,
+) {
+    if max_money <= 0 || start_idx >= books.len() {
+        return;
+    }
+
+    for idx in start_idx..books.len() {
+        let book = books[idx];
+
+        if let Some(collection) = prices_map.get(&book) {
+            if collection.start >= collection.books.len() {
+                continue;
+            }
+
+            // start idx is efficient way to get the next available book with lowest price
+            // as all previous better prices for the book with these pages are used.
+            let price = collection.books[collection.start];
+            if price <= max_money {
+                cur_result += book;
+                *result = cmp::max(*result, cur_result);
+
+                if let Some(collection) = prices_map.get_mut(&book) {
+                    collection.start += 1;
+                }
+
+                // pick this once
+                backtrack(
+                    idx + 1,
+                    books,
+                    max_money - price,
+                    cur_result,
+                    result,
+                    prices_map,
+                );
+
+                cur_result -= book;
+                if let Some(collection) = prices_map.get_mut(&book) {
+                    collection.start -= 1;
+                }
+            }
+        }
+    }
+}
+
+struct Collection {
+    books: Vec<usize>,
+    start: usize,
 }
 
 fn main() {
@@ -20,39 +72,51 @@ fn main() {
     let mut lines = input.lines();
 
     let mut out = BufWriter::new(io::stdout().lock());
-    let n: usize = lines
+    let input: Vec<usize> = lines
         .next()
         .expect("Error reading n")
-        .parse()
-        .expect("Error parsing n");
+        .split_ascii_whitespace()
+        .filter_map(|it| it.parse().ok())
+        .collect();
 
-    let mut matrix: Vec<Vec<char>> = Vec::with_capacity(n);
+    // let n = input[0];
+    let x = input[1];
 
-    for line in lines {
-        matrix.push(line.chars().collect());
-    }
+    let prices: Vec<usize> = lines
+        .next()
+        .expect("Error reading prices")
+        .split_ascii_whitespace()
+        .filter_map(|it| it.parse().ok())
+        .collect();
 
-    let mut dp: Vec<i32> = vec![0; n * n];
-    dp[0] = if matrix[0][0] == TRAP { 0 } else { 1 };
+    // pages to prices map desc
+    let mut prices_map: HashMap<usize, Collection> = HashMap::with_capacity(x);
+    let mut books: Vec<usize> = Vec::with_capacity(x);
 
-    for r in 0..n {
-        for c in 0..n {
-            if matrix[r][c] == TRAP {
-                continue;
-            }
+    for (idx, book) in lines
+        .next()
+        .expect("Error getting pages")
+        .split_ascii_whitespace()
+        .enumerate()
+    {
+        let book: usize = book.parse().expect("Error parsing pages");
+        let collection = prices_map.entry(book).or_insert(Collection {
+            books: vec![],
+            start: 0,
+        });
 
-            let cur_idx = get_idx(r, c, n);
-            if r > 0 {
-                dp[cur_idx] = (dp[cur_idx] + dp[get_idx(r - 1, c, n)]) % MOD;
-            }
-
-            if c > 0 {
-                dp[cur_idx] = (dp[cur_idx] + dp[get_idx(r, c - 1, n)]) % MOD;
-            }
+        match collection.books.binary_search(&prices[idx]) {
+            Ok(pos) | Err(pos) => collection.books.insert(pos, prices[idx]),
         }
-    }
 
-    writeln!(out, "{}", dp[n * n - 1]).expect("error writing line");
+        books.push(book);
+    }
+    books.sort_by(|a, b| b.cmp(a));
+
+    let mut result = 0;
+    backtrack(0, &books, x, 0, &mut result, &mut prices_map);
+
+    writeln!(out, "{}", result).expect("error writing line");
 
     out.flush().ok();
 }
