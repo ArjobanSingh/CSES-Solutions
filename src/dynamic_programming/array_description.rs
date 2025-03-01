@@ -1,107 +1,16 @@
-use std::{
-    cmp,
-    io::{self, BufWriter, Read, Write},
-};
+use std::io::{self, BufWriter, Read, Write};
 
 const MOD: i32 = 1_000_000_007;
 
-fn backtrack(arr: &mut Vec<i32>, idx: usize, u_bound: i32, dp: &mut Vec<Vec<Option<i32>>>) -> i32 {
-    if idx >= arr.len() {
-        return 1;
-    }
-
-    if arr[idx] != 0 {
-        if idx != 0 && arr[idx - 1].abs_diff(arr[idx]) > 1 {
-            return 0;
-        }
-        return backtrack(arr, idx + 1, u_bound, dp);
-    }
-
-    if idx == 0 {
-        // at the start
-        let next = arr[idx + 1];
-        if next == 0 {
-            let mut cur_ans = 0;
-            // all of the nums from 1 to u_bound can be used
-            (1..=u_bound).for_each(|num| {
-                arr[idx] = num;
-                let value = backtrack(arr, idx + 1, u_bound, dp);
-                cur_ans = (cur_ans + value) % MOD;
-                arr[idx] = 0;
-            });
-            return cur_ans;
-        }
-
-        let mut cur_ans = 0;
-        ((next - 1)..=(next + 1))
-            .filter(|&n| n > 0 && n <= u_bound)
-            .for_each(|num| {
-                arr[idx] = num;
-                let value = backtrack(arr, idx + 1, u_bound, dp);
-                cur_ans = (cur_ans + value) % MOD;
-                arr[idx] = 0;
-            });
-        return cur_ans;
-    }
-
-    if idx == (arr.len() - 1) || arr[idx + 1] == 0 {
-        let mut cur_ans = 0;
-        let prev = arr[idx - 1];
-        // prev no will never be 0 as per our logic.
-        ((prev - 1)..=(prev + 1))
-            .filter(|&n| n > 0 && n <= u_bound)
-            .for_each(|num| {
-                if let Some(value) = dp[idx][num as usize] {
-                    cur_ans = (cur_ans + value) % MOD;
-                    return;
-                }
-
-                arr[idx] = num;
-                let value = backtrack(arr, idx + 1, u_bound, dp);
-                cur_ans = (cur_ans + value) % MOD;
-                dp[idx][num as usize] = Some(value);
-                arr[idx] = 0;
-            });
-
-        return cur_ans;
-    }
-
-    // in middle and next element is not 0
-    let mut cur_ans = 0;
-    let prev = arr[idx - 1];
-    let next = arr[idx + 1];
-    let diff = prev.abs_diff(next);
-    let (start, end) = match diff {
-        0 => (prev - 1, prev + 1),
-        1 => {
-            let smaller = cmp::min(prev, next);
-            let larger = cmp::max(prev, next);
-            (smaller, larger)
-        }
-        2 => {
-            let smaller = cmp::min(prev, next);
-            (smaller + 1, smaller + 1)
-        }
-        _ => return cur_ans,
-    };
-
-    (start..=end)
-        .filter(|&n| n > 0 && n <= u_bound)
-        .for_each(|num| {
-            if let Some(value) = dp[idx][num as usize] {
-                cur_ans = (cur_ans + value) % MOD;
-                return;
-            }
-
-            arr[idx] = num;
-            let value = backtrack(arr, idx + 1, u_bound, dp);
-            cur_ans = (cur_ans + value) % MOD;
-            dp[idx][num as usize] = Some(value);
-            arr[idx] = 0;
-        });
-    return cur_ans;
-}
-
+/*
+Approach:
+- We use **Dynamic Programming (DP)** to count the number of valid ways to fill the array.
+- Define `dp[i][x]` as the number of ways to fill the first `i+1` elements, where `nums[i] = x`.
+- If `nums[i] == 0`, it can be any value from `1` to `u_bound`, otherwise, it must be `nums[i]`.
+- Transition: `dp[i][x] = dp[i-1][x-1] + dp[i-1][x] + dp[i-1][x+1]` (if within range).
+- Base case: If `nums[0] == 0`, initialize `dp[0][1..=u_bound] = 1`, else only `dp[0][nums[0]] = 1`.
+- Final answer: Sum over `dp[n-1][x]` for all valid `x`.
+*/
 fn main() {
     let mut input = String::new();
     io::stdin()
@@ -112,7 +21,7 @@ fn main() {
     let mut lines = input.lines();
 
     let mut out = BufWriter::new(io::stdout().lock());
-    let input: Vec<i32> = lines
+    let input: Vec<usize> = lines
         .next()
         .expect("Error reading n")
         .split_ascii_whitespace()
@@ -122,22 +31,49 @@ fn main() {
     let n = input[0];
     let u_bound = input[1]; //  upper bound
 
-    let mut items: Vec<i32> = lines
+    let nums: Vec<i32> = lines
         .next()
         .expect("Error reading prices")
         .split_ascii_whitespace()
         .filter_map(|it| it.parse().ok())
         .collect();
 
-    if items.len() == 1 {
-        writeln!(out, "{}", if items[0] == 0 { u_bound } else { 1 }).expect("error writing line");
-        out.flush().ok();
-        return;
+    // Base cases
+    let mut dp: Vec<Vec<i32>> = vec![vec![0; u_bound + 1]; n];
+    if nums[0] == 0 {
+        // If nums[0] is unknown (0), it can be any value from 1 to u_bound
+        dp[0].fill(1);
+        dp[0][0] = 0; // 0 itself is not a valid number, just created dp of u_bound + 1 for easy traversal
+    } else {
+        // If nums[0] is fixed, set only dp[0][nums[0]] = 1
+        dp[0].fill(0);
+        dp[0][nums[0] as usize] = 1;
     }
 
-    let mut dp: Vec<Vec<Option<i32>>> = vec![vec![None; u_bound as usize + 1]; n as usize];
-    let result = backtrack(&mut items, 0, u_bound, &mut dp);
+    for i in 1..nums.len() {
+        let x = nums[i] as usize;
 
-    writeln!(out, "{result}").expect("error writing line");
+        // Determine range of values nums[i] can take
+        let st = if x == 0 { 1 } else { x };
+        let end = if x == 0 { u_bound } else { x };
+
+        (st..=end).for_each(|x| {
+            // Sum possible ways from previous index (x-1, x, x+1)
+            dp[i][x] = (x - 1..=x + 1).fold(0, |acc, x| {
+                if x != 0 && x <= u_bound {
+                    (acc + dp[i - 1][x]) % MOD
+                } else {
+                    acc
+                }
+            });
+        });
+    }
+
+    writeln!(
+        out,
+        "{}",
+        dp[n - 1].iter().fold(0, |acc, it| { (acc + it) % MOD })
+    )
+    .expect("error writing line");
     out.flush().ok();
 }
