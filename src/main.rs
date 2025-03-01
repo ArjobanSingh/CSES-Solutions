@@ -28,7 +28,6 @@ fn main() {
         .filter_map(|it| it.parse().ok())
         .collect();
 
-    let n = input[0];
     let u_bound = input[1]; //  upper bound
 
     let nums: Vec<i32> = lines
@@ -39,18 +38,19 @@ fn main() {
         .collect();
 
     // Base cases
-    let mut dp: Vec<Vec<i32>> = vec![vec![0; u_bound + 1]; n];
+    let mut dp: Vec<i32> = vec![0; u_bound + 1];
     if nums[0] == 0 {
         // If nums[0] is unknown (0), it can be any value from 1 to u_bound
-        dp[0].fill(1);
-        dp[0][0] = 0; // 0 itself is not a valid number, just created dp of u_bound + 1 for easy traversal
+        dp.fill(1);
+        dp[0] = 0; // 0 itself is not a valid number, just created dp of u_bound + 1 for easy traversal
     } else {
         // If nums[0] is fixed, set only dp[0][nums[0]] = 1
-        dp[0].fill(0);
-        dp[0][nums[0] as usize] = 1;
+        dp.fill(0);
+        dp[nums[0] as usize] = 1;
     }
 
     for i in 1..nums.len() {
+        let mut new_dp = vec![0; u_bound + 1];
         let x = nums[i] as usize;
 
         // Determine range of values nums[i] can take
@@ -59,21 +59,19 @@ fn main() {
 
         (st..=end).for_each(|x| {
             // Sum possible ways from previous index (x-1, x, x+1)
-            dp[i][x] = (x - 1..=x + 1).fold(0, |acc, x| {
+            new_dp[x] = (x - 1..=x + 1).fold(0, |acc, x| {
                 if x != 0 && x <= u_bound {
-                    (acc + dp[i - 1][x]) % MOD
+                    (acc + dp[x]) % MOD
                 } else {
                     acc
                 }
             });
         });
+
+        dp = new_dp;
     }
 
-    writeln!(
-        out,
-        "{}",
-        dp[n - 1].iter().fold(0, |acc, it| { (acc + it) % MOD })
-    )
-    .expect("error writing line");
+    writeln!(out, "{}", dp.iter().fold(0, |acc, it| { (acc + it) % MOD }))
+        .expect("error writing line");
     out.flush().ok();
 }
